@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mercadinho - Entrada de Material</title>
+    <title>Mercadinho - Entrada de Material V2</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
@@ -11,22 +11,25 @@
 
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-md flex flex-col">
         <header class="bg-blue-600 text-white p-4 text-center font-bold text-xl shadow-sm">
-            🛒 Entrada de Materiais
+            🛒 Entrada de Materiais (V2)
         </header>
 
         <div class="p-4 border-b border-gray-200 bg-gray-50">
-            <h2 class="text-sm font-semibold text-gray-700 mb-2">Escanear QR Code do Produto</h2>
+            <h2 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Escanear QR Code ou Cód. Barras</h2>
             <div id="reader" class="overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white" style="width: 100%;"></div>
-            <p id="scanned-status" class="text-xs text-center mt-2 text-gray-500">Câmera pronta para leitura</p>
+            <p id="scanned-status" class="text-xs text-center mt-2 text-gray-500">Câmera pronta para leitura múltipla</p>
         </div>
 
         <form id="formEntrada" class="p-4 space-y-4 flex-1">
             
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Produto Identificado</label>
-                <select id="codProduto" class="block w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:ring-blue-500 focus:border-blue-500" required>
-                    <option value="">Aguardando leitura de QR Code...</option>
-                </select>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Pesquisar Produto (Digite o Cód. ou Nome)</label>
+                <input type="text" id="buscaProduto" placeholder="Digite o código de barras ou nome..." class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base focus:ring-blue-500 focus:border-blue-500" list="listaProdutosDatalist" required>
+                
+                <datalist id="listaProdutosDatalist"></datalist>
+                
+                <div id="feedbackProduto" class="mt-2 p-2 rounded-lg text-sm hidden font-medium"></div>
+                <input type="hidden" id="codProdutoFinal">
             </div>
 
             <div>
@@ -62,17 +65,19 @@
         // CONFIGURAÇÃO: Insira aqui a URL gerada na implantação do Apps Script
         const URL_API = https://script.google.com/macros/s/AKfycbzitXfIzjyG0ebH1w4-f_ct4uUWOo28fNPY79GtcvEjP4ruYqXrpoKxCqjFYl8ntQ3B/exec;
 
-        let listaProdutos = [];
+
+        let bancoProdutos = [];
         let html5QrcodeScanner;
 
-        // Inicialização ao carregar a página
         document.addEventListener("DOMContentLoaded", function() {
             carregarDadosIniciais();
             inicializarScanner();
             
-            // Eventos para recalcular preço total em tempo real
             document.getElementById("quantidade").addEventListener("input", calcularTotal);
             document.getElementById("precoUnitario").addEventListener("input", calcularTotal);
+            
+            // Monitora a digitação/seleção manual do produto
+            document.getElementById("buscaProduto").addEventListener("input", verificarProdutoDigitado);
         });
 
         // Busca Produtos e Fornecedores da Planilha
@@ -80,63 +85,83 @@
             fetch(URL_API)
             .then(res => res.json())
             .then(data => {
-                listaProdutos = data.produtos;
+                bancoProdutos = data.produtos;
                 
-                // Preenche Select de Fornecedores
+                // Preenche Fornecedores
                 const selectForn = document.getElementById("codFornecedor");
                 selectForn.innerHTML = '<option value="">Selecione o Fornecedor</option>';
                 data.proveedores.forEach(f => {
                     selectForn.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
                 });
 
-                // Inicializa o select de produtos com todos para caso queira escolher manualmente
-                atualizarSelectProduto("");
+                // Preenche o datalist de autocompletar para busca manual
+                const datalist = document.getElementById("listaProdutosDatalist");
+                datalist.innerHTML = "";
+                bancoProdutos.forEach(p => {
+                    datalist.innerHTML += `<option value="${p.id}"> ${p.descricao}</option>`;
+                });
             })
-            .catch(err => alert("Erro ao carregar dados da planilha. Verifique a URL da API."));
+            .catch(err => alert("Erro ao carregar dados da planilha. Verifique a URL no código."));
         }
 
-        // Atualiza o dropdown de produtos (seleciona se encontrar o QR Code)
-        function atualizarSelectProduto(codigoEscaneado) {
-            const selectProd = document.getElementById("codProduto");
-            selectProd.innerHTML = '<option value="">Selecione ou Escaneie o Produto</option>';
-            
-            let encontrado = false;
-            listaProdutos.forEach(p => {
-                const selected = p.id == codigoEscaneado ? "selected" : "";
-                if(selected) encontrado = true;
-                selectProd.innerHTML += `<option value="${p.id}" ${selected}>[${p.id}] ${p.descricao}</option>`;
-            });
-
-            if(codigoEscaneado && !encontrado) {
-                alert(`Aviso: Produto com Cód QR "${codigoEscaneado}" não está cadastrado na aba Produtos.`);
-            }
-        }
-
-        // Configura e ativa a câmera
+        // Configura o scanner para ler QR Codes E códigos de barras comuns (EAN)
         function inicializarScanner() {
             html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
+                fps: 15, 
+                qrbox: { width: 280, height: 160 }, // Formato retangular otimizado para linhas de códigos de barras
                 rememberLastUsedCamera: true,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+                formatsToSupport: [ 
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128
+                ]
             });
             
             html5QrcodeScanner.render(onScanSuccess);
         }
 
-        // O que acontece quando lê o QR Code com sucesso
+        // Executado quando a câmera lê qualquer código com sucesso
         function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById("scanned-status").innerText = "Código lido: " + decodedText;
-            document.getElementById("scanned-status").classList.add("text-emerald-600");
+            document.getElementById("scanned-status").innerText = "Código detectado: " + decodedText;
+            document.getElementById("scanned-status").className = "text-xs text-center mt-2 text-emerald-600 font-bold";
             
-            // Atualiza o formulário com o produto escaneado
-            atualizarSelectProduto(decodedText);
+            // Preenche o campo de texto com o código escaneado e roda a validação
+            document.getElementById("buscaProduto").value = decodedText;
+            validarCodigo(decodedText);
             
-            // Vibra o celular de leve como feedback de bip (se suportado pelo aparelho)
             if (navigator.vibrate) navigator.vibrate(100);
         }
 
-        // Cálculo dinâmico do valor total
+        // Verifica o que o usuário está digitando ou selecionando na lista
+        function verificarProdutoDigitado() {
+            const valor = document.getElementById("buscaProduto").value.trim();
+            validarCodigo(valor);
+        }
+
+        // Valida se o código/texto inserido bate com algum produto do banco de dados
+        function validarCodigo(texto) {
+            const feedback = document.getElementById("feedbackProduto");
+            const campoFinal = document.getElementById("codProdutoFinal");
+            
+            // Procura por código ID exato ou por descrição
+            const produtoEncontrado = bancoProdutos.find(p => p.id == texto || p.descricao.toLowerCase().includes(texto.toLowerCase()));
+
+            if (produtoEncontrado) {
+                feedback.innerHTML = `✓ Identificado: <strong class="text-emerald-800">${produtoEncontrado.descricao}</strong> (Cód: ${produtoEncontrado.id})`;
+                feedback.className = "mt-2 p-2 rounded-lg text-sm block bg-emerald-50 text-emerald-700 border border-emerald-200";
+                campoFinal.value = produtoEncontrado.id; // Define o código correto para o envio
+            } else if (texto.length > 0) {
+                feedback.innerHTML = `⚠️ Código ou nome não encontrado na base de dados.`;
+                feedback.className = "mt-2 p-2 rounded-lg text-sm block bg-amber-50 text-amber-700 border border-amber-200";
+                campoFinal.value = texto; // Permite enviar mesmo assim (como novo código temporário)
+            } else {
+                feedback.classList.add("hidden");
+                campoFinal.value = "";
+            }
+        }
+
         function calcularTotal() {
             const qtd = Number(document.getElementById("quantidade").value) || 0;
             const preco = Number(document.getElementById("precoUnitario").value) || 0;
@@ -144,14 +169,19 @@
             document.getElementById("precoTotalLabel").innerText = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         }
 
-        // Envio dos dados (Gravação na planilha)
+        // Envio dos dados para a planilha
         document.getElementById("formEntrada").addEventListener("submit", function(e) {
             e.preventDefault();
             
+            const codProduto = document.getElementById("codProdutoFinal").value;
+            if (!codProduto) {
+                alert("Por favor, selecione ou digite um produto válido.");
+                return;
+            }
+
             const btn = document.getElementById("btnSalvar");
             const btnText = document.getElementById("btnText");
             
-            // Estado de carregamento (Loading)
             btn.disabled = true;
             btn.classList.replace("bg-emerald-600", "bg-gray-400");
             btnText.innerText = "⏳ GRAVANDO NA PLANILHA...";
@@ -160,7 +190,7 @@
             const preco = Number(document.getElementById("precoUnitario").value);
 
             const payload = {
-                codProduto: document.getElementById("codProduto").value,
+                codProduto: codProduto,
                 codFornecedor: document.getElementById("codFornecedor").value,
                 quantidade: qtd,
                 precoUnitario: preco,
@@ -170,27 +200,27 @@
             fetch(URL_API, {
                 method: "POST",
                 redirect: "follow",
-                dataType: "json",
-                accepts: "application/json",
                 body: JSON.stringify(payload)
             })
             .then(res => res.json())
             .then(resposta => {
                 if(resposta.status === "success") {
-                    alert("Sucesso! Entrada de material registrada.");
-                    // Reseta os campos mantendo o fornecedor para agilizar a próxima compra
+                    alert("Sucesso! Entrada registrada.");
+                    // Limpa o formulário para o próximo item
+                    document.getElementById("buscaProduto").value = "";
+                    document.getElementById("codProdutoFinal").value = "";
+                    document.getElementById("feedbackProduto").classList.add("hidden");
                     document.getElementById("quantidade").value = "1";
                     document.getElementById("precoUnitario").value = "";
                     document.getElementById("precoTotalLabel").innerText = "R$ 0,00";
                     document.getElementById("scanned-status").innerText = "Aguardando próxima leitura...";
-                    document.getElementById("scanned-status").classList.remove("text-emerald-600");
+                    document.getElementById("scanned-status").className = "text-xs text-center mt-2 text-gray-500";
                 } else {
                     alert("Erro ao gravar: " + resposta.message);
                 }
             })
-            .catch(err => alert("Erro de conexão ao enviar os dados."))
+            .catch(err => alert("Erro de conexão ao enviar dados."))
             .finally(() => {
-                // Restaura o botão
                 btn.disabled = false;
                 btn.classList.replace("bg-gray-400", "bg-emerald-600");
                 btnText.innerText = "📦 GRAVAR AQUISIÇÃO";
@@ -199,6 +229,3 @@
     </script>
 </body>
 </html>
-
-
-
