@@ -64,8 +64,7 @@
                                 <th class="p-2 text-center">Ação</th>
                             </tr>
                         </thead>
-                        <tbody id="corpoCarrinho" class="divide-y divide-gray-200">
-                            </tbody>
+                        <tbody id="corpoCarrinho" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -82,8 +81,8 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO: Substitua o texto abaixo pela URL copiada da Etapa 1
-        const URL_API = https://script.google.com/macros/s/AKfycbzitXfIzjyG0ebH1w4-f_ct4uUWOo28fNPY79GtcvEjP4ruYqXrpoKxCqjFYl8ntQ3B/exec;
+        // ✅ CORREÇÃO 1: URL entre aspas
+        const URL_API = "https://script.google.com/macros/s/AKfycbzitXfIzjyG0ebH1w4-f_ct4uUWOo28fNPY79GtcvEjP4ruYqXrpoKxCqjFYl8ntQ3B/exec";
         let bancoProdutos = [];
         let carrinhoItens = [];
 
@@ -100,21 +99,19 @@
             .then(data => {
                 bancoProdutos = data.produtos;
                 
-                // Preenche Fornecedores
                 const selectForn = document.getElementById("codFornecedor");
                 selectForn.innerHTML = '<option value="">Selecione o Fornecedor</option>';
                 data.proveedores.forEach(f => {
                     selectForn.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
                 });
 
-                // Preenche o autocompletar de produtos
                 const datalist = document.getElementById("listaProdutosDatalist");
                 datalist.innerHTML = "";
                 bancoProdutos.forEach(p => {
                     datalist.innerHTML += `<option value="${p.id}"> ${p.descricao}</option>`;
                 });
             })
-            .catch(err => alert("Erro ao conectar com a planilha. Verifique as configurações."));
+            .catch(err => alert("Erro ao conectar com a planilha. Verifique as configurações.\n" + err));
         }
 
         function verificarProdutoDigitado() {
@@ -237,7 +234,7 @@
             .then(res => res.json())
             .then(resposta => {
                 if (resposta.status === "success") {
-                    alert("Sucesso! Todos os itens da Nota Fiscal foram inseridos.");
+                    alert("✅ Sucesso! Todos os itens da Nota Fiscal foram inseridos.");
                     carrinhoItens = [];
                     document.getElementById("codFornecedor").value = "";
                     atualizarInterfaceCarrinho();
@@ -245,7 +242,7 @@
                     alert("Erro do servidor: " + resposta.message);
                 }
             })
-            .catch(err => alert("Erro ao enviar dados."))
+            .catch(err => alert("Erro ao enviar dados: " + err))
             .finally(() => {
                 btn.disabled = false;
                 btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
