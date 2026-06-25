@@ -3,84 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mercadinho - Entrada de Material V2</title>
+    <title>Mercadinho - Gerador de Nota Fiscal (V3)</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-gray-100 font-sans antialiased pb-10">
 
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-md flex flex-col">
         <header class="bg-blue-600 text-white p-4 text-center font-bold text-xl shadow-sm">
-            🛒 Entrada de Materiais (V2)
+            🧾 Lançamento de Nota Fiscal (V3)
         </header>
 
-        <div class="p-4 border-b border-gray-200 bg-gray-50">
-            <h2 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Escanear QR Code ou Cód. Barras</h2>
-            <div id="reader" class="overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white" style="width: 100%;"></div>
-            <p id="scanned-status" class="text-xs text-center mt-2 text-gray-500">Câmera pronta para leitura múltipla</p>
-        </div>
-
-        <form id="formEntrada" class="p-4 space-y-4 flex-1">
+        <div class="p-4 space-y-4 flex-1">
             
-            <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Pesquisar Produto (Digite o Cód. ou Nome)</label>
-                <input type="text" id="buscaProduto" placeholder="Digite o código de barras ou nome..." class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base focus:ring-blue-500 focus:border-blue-500" list="listaProdutosDatalist" required>
-                
-                <datalist id="listaProdutosDatalist"></datalist>
-                
-                <div id="feedbackProduto" class="mt-2 p-2 rounded-lg text-sm hidden font-medium"></div>
-                <input type="hidden" id="codProdutoFinal">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Fornecedor</label>
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">1. Escolha o Fornecedor</label>
                 <select id="codFornecedor" class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base focus:ring-blue-500 focus:border-blue-500" required>
                     <option value="">Carregando fornecedores...</option>
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-200 space-y-3">
+                <label class="block text-xs font-bold text-blue-800 uppercase tracking-wider">2. Adicionar Item à Nota</label>
+                
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Quantidade</label>
-                    <input type="number" id="quantidade" min="1" step="1" value="1" class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base text-center" required>
+                    <input type="text" id="buscaProduto" placeholder="Pesquisar por Código ou Nome do Produto..." class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base" list="listaProdutosDatalist">
+                    <datalist id="listaProdutosDatalist"></datalist>
+                    <div id="feedbackProduto" class="mt-1 text-xs font-medium hidden"></div>
+                    <input type="hidden" id="codProdutoFinal">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Preço Unitário (R$)</label>
-                    <input type="number" id="precoUnitario" min="0" step="0.01" placeholder="0,00" class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base text-center" required>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-2xs font-bold text-gray-600 uppercase">Qtd</label>
+                        <input type="number" id="quantidade" min="1" value="1" class="block w-full p-2 bg-white border border-gray-300 rounded-lg text-center">
+                    </div>
+                    <div>
+                        <label class="block text-2xs font-bold text-gray-600 uppercase">Preço Unit. (R$)</label>
+                        <input type="number" id="precoUnitario" min="0" step="0.01" placeholder="0,00" class="block w-full p-2 bg-white border border-gray-300 rounded-lg text-center">
+                    </div>
+                </div>
+
+                <button type="button" id="btnAdicionarItem" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm shadow transition">
+                    ➕ Adicionar Item à Lista
+                </button>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Itens da Nota Fiscal</h3>
+                <div id="carrinhoVazio" class="text-center py-6 text-sm text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    Nenhum produto adicionado ainda.
+                </div>
+                
+                <div id="tabelaContainer" class="hidden overflow-hidden border border-gray-200 rounded-lg bg-white">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50 text-2xs uppercase font-bold text-gray-500 text-left">
+                            <tr>
+                                <th class="p-2">Item / Cód</th>
+                                <th class="p-2 text-center">Qtd x Preço</th>
+                                <th class="p-2 text-right">Total</th>
+                                <th class="p-2 text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoCarrinho" class="divide-y divide-gray-200">
+                            </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
-                <span class="text-xs font-semibold text-blue-700 uppercase block">Preço Total Calculado</span>
-                <span id="precoTotalLabel" class="text-2xl font-black text-blue-900">R$ 0,00</span>
+            <div class="bg-gray-900 text-white p-4 rounded-xl text-center shadow-inner">
+                <span class="text-2xs font-bold text-gray-400 uppercase tracking-widest block">VALOR TOTAL DA NOTA FISCAL</span>
+                <span id="totalNotaLabel" class="text-3xl font-black text-emerald-400">R$ 0,00</span>
             </div>
 
-            <button type="submit" id="btnSalvar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-4 rounded-xl text-lg shadow-md transition duration-200 active:scale-98 flex justify-center items-center">
-                <span id="btnText">📦 GRAVAR AQUISIÇÃO</span>
+            <button type="button" id="btnFinalizarNota" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-4 rounded-xl text-lg shadow-md transition disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                📦 CONCLUIR E GRAVAR NOTA FISCAL
             </button>
-        </form>
+        </div>
     </div>
 
     <script>
-        // CONFIGURAÇÃO: Insira aqui a URL gerada na implantação do Apps Script
+        // CONFIGURAÇÃO: Substitua o texto abaixo pela URL copiada da Etapa 1
         const URL_API = https://script.google.com/macros/s/AKfycbzitXfIzjyG0ebH1w4-f_ct4uUWOo28fNPY79GtcvEjP4ruYqXrpoKxCqjFYl8ntQ3B/exec;
 
-
         let bancoProdutos = [];
-        let html5QrcodeScanner;
+        let carrinhoItens = [];
 
         document.addEventListener("DOMContentLoaded", function() {
             carregarDadosIniciais();
-            inicializarScanner();
-            
-            document.getElementById("quantidade").addEventListener("input", calcularTotal);
-            document.getElementById("precoUnitario").addEventListener("input", calcularTotal);
-            
-            // Monitora a digitação/seleção manual do produto
             document.getElementById("buscaProduto").addEventListener("input", verificarProdutoDigitado);
+            document.getElementById("btnAdicionarItem").addEventListener("click", adicionarItemAoCarrinho);
+            document.getElementById("btnFinalizarNota").addEventListener("click", enviarNotaFiscal);
         });
 
-        // Busca Produtos e Fornecedores da Planilha
         function carregarDadosIniciais() {
             fetch(URL_API)
             .then(res => res.json())
@@ -94,107 +108,126 @@
                     selectForn.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
                 });
 
-                // Preenche o datalist de autocompletar para busca manual
+                // Preenche o autocompletar de produtos
                 const datalist = document.getElementById("listaProdutosDatalist");
                 datalist.innerHTML = "";
                 bancoProdutos.forEach(p => {
                     datalist.innerHTML += `<option value="${p.id}"> ${p.descricao}</option>`;
                 });
             })
-            .catch(err => alert("Erro ao carregar dados da planilha. Verifique a URL no código."));
+            .catch(err => alert("Erro ao conectar com a planilha. Verifique as configurações."));
         }
 
-        // Configura o scanner para ler QR Codes E códigos de barras comuns (EAN)
-        function inicializarScanner() {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-                fps: 15, 
-                qrbox: { width: 280, height: 160 }, // Formato retangular otimizado para linhas de códigos de barras
-                rememberLastUsedCamera: true,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-                formatsToSupport: [ 
-                    Html5QrcodeSupportedFormats.QR_CODE,
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.CODE_128
-                ]
-            });
-            
-            html5QrcodeScanner.render(onScanSuccess);
-        }
-
-        // Executado quando a câmera lê qualquer código com sucesso
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById("scanned-status").innerText = "Código detectado: " + decodedText;
-            document.getElementById("scanned-status").className = "text-xs text-center mt-2 text-emerald-600 font-bold";
-            
-            // Preenche o campo de texto com o código escaneado e roda a validação
-            document.getElementById("buscaProduto").value = decodedText;
-            validarCodigo(decodedText);
-            
-            if (navigator.vibrate) navigator.vibrate(100);
-        }
-
-        // Verifica o que o usuário está digitando ou selecionando na lista
         function verificarProdutoDigitado() {
             const valor = document.getElementById("buscaProduto").value.trim();
-            validarCodigo(valor);
-        }
-
-        // Valida se o código/texto inserido bate com algum produto do banco de dados
-        function validarCodigo(texto) {
             const feedback = document.getElementById("feedbackProduto");
             const campoFinal = document.getElementById("codProdutoFinal");
             
-            // Procura por código ID exato ou por descrição
-            const produtoEncontrado = bancoProdutos.find(p => p.id == texto || p.descricao.toLowerCase().includes(texto.toLowerCase()));
+            const produtoEncontrado = bancoProdutos.find(p => p.id == valor || p.descricao.toLowerCase().includes(valor.toLowerCase()));
 
             if (produtoEncontrado) {
-                feedback.innerHTML = `✓ Identificado: <strong class="text-emerald-800">${produtoEncontrado.descricao}</strong> (Cód: ${produtoEncontrado.id})`;
-                feedback.className = "mt-2 p-2 rounded-lg text-sm block bg-emerald-50 text-emerald-700 border border-emerald-200";
-                campoFinal.value = produtoEncontrado.id; // Define o código correto para o envio
-            } else if (texto.length > 0) {
-                feedback.innerHTML = `⚠️ Código ou nome não encontrado na base de dados.`;
-                feedback.className = "mt-2 p-2 rounded-lg text-sm block bg-amber-50 text-amber-700 border border-amber-200";
-                campoFinal.value = texto; // Permite enviar mesmo assim (como novo código temporário)
+                feedback.innerHTML = `✓ ${produtoEncontrado.descricao}`;
+                feedback.className = "mt-1 text-xs font-semibold text-emerald-600 block";
+                campoFinal.value = produtoEncontrado.id;
+            } else if (valor.length > 0) {
+                feedback.innerHTML = `⚠️ Novo código/produto manual.`;
+                feedback.className = "mt-1 text-xs font-semibold text-amber-600 block";
+                campoFinal.value = valor;
             } else {
                 feedback.classList.add("hidden");
                 campoFinal.value = "";
             }
         }
 
-        function calcularTotal() {
-            const qtd = Number(document.getElementById("quantidade").value) || 0;
-            const preco = Number(document.getElementById("precoUnitario").value) || 0;
-            const total = qtd * preco;
-            document.getElementById("precoTotalLabel").innerText = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-        }
-
-        // Envio dos dados para a planilha
-        document.getElementById("formEntrada").addEventListener("submit", function(e) {
-            e.preventDefault();
-            
+        function adicionarItemAoCarrinho() {
             const codProduto = document.getElementById("codProdutoFinal").value;
-            if (!codProduto) {
-                alert("Por favor, selecione ou digite um produto válido.");
+            const buscaInput = document.getElementById("buscaProduto").value.trim();
+            const qtd = Number(document.getElementById("quantidade").value) || 1;
+            const preco = Number(document.getElementById("precoUnitario").value) || 0;
+
+            if (!buscaInput) {
+                alert("Por favor, selecione ou digite um produto.");
                 return;
             }
 
-            const btn = document.getElementById("btnSalvar");
-            const btnText = document.getElementById("btnText");
-            
-            btn.disabled = true;
-            btn.classList.replace("bg-emerald-600", "bg-gray-400");
-            btnText.innerText = "⏳ GRAVANDO NA PLANILHA...";
+            const prodObj = bancoProdutos.find(p => p.id == codProduto);
+            const descricaoExibicao = prodObj ? prodObj.descricao : buscaInput;
 
-            const qtd = Number(document.getElementById("quantidade").value);
-            const preco = Number(document.getElementById("precoUnitario").value);
-
-            const payload = {
-                codProduto: codProduto,
-                codFornecedor: document.getElementById("codFornecedor").value,
+            carrinhoItens.push({
+                codProduto: codProduto || buscaInput,
+                descricao: descricaoExibicao,
                 quantidade: qtd,
                 precoUnitario: preco,
                 precoTotal: qtd * preco
+            });
+
+            document.getElementById("buscaProduto").value = "";
+            document.getElementById("codProdutoFinal").value = "";
+            document.getElementById("feedbackProduto").classList.add("hidden");
+            document.getElementById("quantidade").value = "1";
+            document.getElementById("precoUnitario").value = "";
+
+            atualizarInterfaceCarrinho();
+        }
+
+        function removerItemDoCarrinho(index) {
+            carrinhoItens.splice(index, 1);
+            atualizarInterfaceCarrinho();
+        }
+
+        function atualizarInterfaceCarrinho() {
+            const vazioDiv = document.getElementById("carrinhoVazio");
+            const tabelaDiv = document.getElementById("tabelaContainer");
+            const corpo = document.getElementById("corpoCarrinho");
+            const labelTotal = document.getElementById("totalNotaLabel");
+            const btnFinalizar = document.getElementById("btnFinalizarNota");
+
+            if (carrinhoItens.length === 0) {
+                vazioDiv.classList.remove("hidden");
+                tabelaDiv.classList.add("hidden");
+                btnFinalizar.disabled = true;
+                labelTotal.innerText = "R$ 0,00";
+                return;
+            }
+
+            vazioDiv.classList.add("hidden");
+            tabelaDiv.classList.remove("hidden");
+            btnFinalizar.disabled = false;
+
+            corpo.innerHTML = "";
+            let totalNota = 0;
+
+            carrinhoItens.forEach((item, index) => {
+                totalNota += item.precoTotal;
+                corpo.innerHTML += `
+                    <tr>
+                        <td class="p-2 font-medium text-gray-900">${item.descricao}<br><span class="text-2xs text-gray-400">Cod: ${item.codProduto}</span></td>
+                        <td class="p-2 text-center text-gray-500">${item.quantidade} x R$ ${item.precoUnitario.toFixed(2)}</td>
+                        <td class="p-2 text-right font-bold text-gray-700">R$ ${item.precoTotal.toFixed(2)}</td>
+                        <td class="p-2 text-center">
+                            <button type="button" onclick="removerItemDoCarrinho(${index})" class="text-red-500 hover:text-red-700 font-bold px-2">✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            labelTotal.innerText = totalNota.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        }
+
+        function enviarNotaFiscal() {
+            const codFornecedor = document.getElementById("codFornecedor").value;
+            if (!codFornecedor) {
+                alert("Por favor, selecione um Fornecedor antes de fechar a nota.");
+                return;
+            }
+
+            const btn = document.getElementById("btnFinalizarNota");
+            btn.disabled = true;
+            btn.innerText = "⏳ GRAVANDO NOTA NO GOOGLE SHEETS...";
+
+            const payload = {
+                codFornecedor: codFornecedor,
+                itens: carrinhoItens
             };
 
             fetch(URL_API, {
@@ -204,28 +237,21 @@
             })
             .then(res => res.json())
             .then(resposta => {
-                if(resposta.status === "success") {
-                    alert("Sucesso! Entrada registrada.");
-                    // Limpa o formulário para o próximo item
-                    document.getElementById("buscaProduto").value = "";
-                    document.getElementById("codProdutoFinal").value = "";
-                    document.getElementById("feedbackProduto").classList.add("hidden");
-                    document.getElementById("quantidade").value = "1";
-                    document.getElementById("precoUnitario").value = "";
-                    document.getElementById("precoTotalLabel").innerText = "R$ 0,00";
-                    document.getElementById("scanned-status").innerText = "Aguardando próxima leitura...";
-                    document.getElementById("scanned-status").className = "text-xs text-center mt-2 text-gray-500";
+                if (resposta.status === "success") {
+                    alert("Sucesso! Todos os itens da Nota Fiscal foram inseridos.");
+                    carrinhoItens = [];
+                    document.getElementById("codFornecedor").value = "";
+                    atualizarInterfaceCarrinho();
                 } else {
-                    alert("Erro ao gravar: " + resposta.message);
+                    alert("Erro do servidor: " + resposta.message);
                 }
             })
-            .catch(err => alert("Erro de conexão ao enviar dados."))
+            .catch(err => alert("Erro ao enviar dados."))
             .finally(() => {
                 btn.disabled = false;
-                btn.classList.replace("bg-gray-400", "bg-emerald-600");
-                btnText.innerText = "📦 GRAVAR AQUISIÇÃO";
+                btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
             });
-        });
+        }
     </script>
 </body>
 </html>
