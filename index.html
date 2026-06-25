@@ -227,26 +227,22 @@
             };
 
             fetch(URL_API, {
-                method: "POST",
-                redirect: "follow",
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(resposta => {
-                if (resposta.status === "success") {
-                    alert("✅ Sucesso! Todos os itens da Nota Fiscal foram inseridos.");
-                    carrinhoItens = [];
-                    document.getElementById("codFornecedor").value = "";
-                    atualizarInterfaceCarrinho();
-                } else {
-                    alert("Erro do servidor: " + resposta.message);
-                }
-            })
-            .catch(err => alert("Erro ao enviar dados: " + err))
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
-            });
+    method: "POST",
+    redirect: "follow",
+    mode: "no-cors",
+    body: JSON.stringify(payload)
+})
+.then(() => {
+    alert("✅ Nota Fiscal enviada! Verifique a planilha.");
+    carrinhoItens = [];
+    document.getElementById("codFornecedor").value = "";
+    atualizarInterfaceCarrinho();
+})
+.catch(err => alert("Erro ao enviar dados: " + err))
+.finally(() => {
+    btn.disabled = false;
+    btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
+});
         }
     </script>
 </body>
