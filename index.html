@@ -17,20 +17,21 @@
             
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                 <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">1. Escolha o Fornecedor</label>
-               <input type="text" id="buscaFornecedor" placeholder="Digite o nome do Fornecedor..." 
-    class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base" 
-    list="listaFornecedoresDatalist">
-<datalist id="listaFornecedoresDatalist"></datalist>
-<div id="feedbackFornecedor" class="mt-1 text-xs font-medium hidden"></div>
-<input type="hidden" id="codFornecedor">
-                
+                <input type="text" id="buscaFornecedor" placeholder="Digite o nome do Fornecedor..."
+                    class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base"
+                    list="listaFornecedoresDatalist">
+                <datalist id="listaFornecedoresDatalist"></datalist>
+                <div id="feedbackFornecedor" class="mt-1 text-xs font-medium hidden"></div>
+                <input type="hidden" id="codFornecedor">
             </div>
 
             <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-200 space-y-3">
                 <label class="block text-xs font-bold text-blue-800 uppercase tracking-wider">2. Adicionar Item à Nota</label>
                 
                 <div>
-                    <input type="text" id="buscaProduto" placeholder="Pesquisar por Código ou Nome do Produto..." class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base" list="listaProdutosDatalist">
+                    <input type="text" id="buscaProduto" placeholder="Pesquisar por Código ou Nome do Produto..."
+                        class="block w-full p-3 bg-white border border-gray-300 rounded-lg text-base"
+                        list="listaProdutosDatalist">
                     <datalist id="listaProdutosDatalist"></datalist>
                     <div id="feedbackProduto" class="mt-1 text-xs font-medium hidden"></div>
                     <input type="hidden" id="codProdutoFinal">
@@ -85,13 +86,14 @@
     </div>
 
     <script>
-        // ✅ CORREÇÃO 1: URL entre aspas
         const URL_API = "https://script.google.com/macros/s/AKfycbzitXfIzjyG0ebH1w4-f_ct4uUWOo28fNPY79GtcvEjP4ruYqXrpoKxCqjFYl8ntQ3B/exec";
         let bancoProdutos = [];
+        let bancoDeFornecedores = [];
         let carrinhoItens = [];
 
         document.addEventListener("DOMContentLoaded", function() {
             carregarDadosIniciais();
+            document.getElementById("buscaFornecedor").addEventListener("input", verificarFornecedorDigitado);
             document.getElementById("buscaProduto").addEventListener("input", verificarProdutoDigitado);
             document.getElementById("btnAdicionarItem").addEventListener("click", adicionarItemAoCarrinho);
             document.getElementById("btnFinalizarNota").addEventListener("click", enviarNotaFiscal);
@@ -101,21 +103,44 @@
             fetch(URL_API)
             .then(res => res.json())
             .then(data => {
-                bancoProdutos = data.produtos;
-                
-                const selectForn = document.getElementById("codFornecedor");
-                selectForn.innerHTML = '<option value="">Selecione o Fornecedor</option>';
-                data.proveedores.forEach(f => {
-                    selectForn.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
+                // Fornecedores em ordem alfabética
+                bancoDeFornecedores = data.proveedores.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+                const datalistForn = document.getElementById("listaFornecedoresDatalist");
+                datalistForn.innerHTML = "";
+                bancoDeFornecedores.forEach(f => {
+                    datalistForn.innerHTML += `<option value="${f.nome}">`;
                 });
 
-                const datalist = document.getElementById("listaProdutosDatalist");
-                datalist.innerHTML = "";
+                // Produtos em ordem alfabética
+                bancoProdutos = data.produtos.sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'));
+                const datalistProd = document.getElementById("listaProdutosDatalist");
+                datalistProd.innerHTML = "";
                 bancoProdutos.forEach(p => {
-                    datalist.innerHTML += `<option value="${p.id}"> ${p.descricao}</option>`;
+                    datalistProd.innerHTML += `<option value="${p.descricao}">`;
                 });
             })
-            .catch(err => alert("Erro ao conectar com a planilha. Verifique as configurações.\n" + err));
+            .catch(err => alert("Erro ao conectar com a planilha.\n" + err));
+        }
+
+        function verificarFornecedorDigitado() {
+            const valor = document.getElementById("buscaFornecedor").value.trim();
+            const feedback = document.getElementById("feedbackFornecedor");
+            const campoFinal = document.getElementById("codFornecedor");
+
+            const encontrado = bancoDeFornecedores.find(f => f.nome.toLowerCase() === valor.toLowerCase());
+
+            if (encontrado) {
+                feedback.innerHTML = `✓ ${encontrado.nome}`;
+                feedback.className = "mt-1 text-xs font-semibold text-emerald-600 block";
+                campoFinal.value = encontrado.id;
+            } else if (valor.length > 0) {
+                feedback.innerHTML = `⚠️ Fornecedor não encontrado na lista.`;
+                feedback.className = "mt-1 text-xs font-semibold text-amber-600 block";
+                campoFinal.value = "";
+            } else {
+                feedback.classList.add("hidden");
+                campoFinal.value = "";
+            }
         }
 
         function verificarProdutoDigitado() {
@@ -123,7 +148,11 @@
             const feedback = document.getElementById("feedbackProduto");
             const campoFinal = document.getElementById("codProdutoFinal");
             
-            const produtoEncontrado = bancoProdutos.find(p => p.id == valor || p.descricao.toLowerCase().includes(valor.toLowerCase()));
+            const produtoEncontrado = bancoProdutos.find(p =>
+                String(p.id) === valor ||
+                p.descricao.toLowerCase() === valor.toLowerCase() ||
+                p.descricao.toLowerCase().includes(valor.toLowerCase())
+            );
 
             if (produtoEncontrado) {
                 feedback.innerHTML = `✓ ${produtoEncontrado.descricao}`;
@@ -217,7 +246,7 @@
         function enviarNotaFiscal() {
             const codFornecedor = document.getElementById("codFornecedor").value;
             if (!codFornecedor) {
-                alert("Por favor, selecione um Fornecedor antes de fechar a nota.");
+                alert("Por favor, selecione um Fornecedor válido antes de fechar a nota.");
                 return;
             }
 
@@ -231,22 +260,24 @@
             };
 
             fetch(URL_API, {
-    method: "POST",
-    redirect: "follow",
-    mode: "no-cors",
-    body: JSON.stringify(payload)
-})
-.then(() => {
-    alert("✅ Nota Fiscal enviada! Verifique a planilha.");
-    carrinhoItens = [];
-    document.getElementById("codFornecedor").value = "";
-    atualizarInterfaceCarrinho();
-})
-.catch(err => alert("Erro ao enviar dados: " + err))
-.finally(() => {
-    btn.disabled = false;
-    btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
-});
+                method: "POST",
+                redirect: "follow",
+                mode: "no-cors",
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert("✅ Nota Fiscal enviada! Verifique a planilha.");
+                carrinhoItens = [];
+                document.getElementById("buscaFornecedor").value = "";
+                document.getElementById("codFornecedor").value = "";
+                document.getElementById("feedbackFornecedor").classList.add("hidden");
+                atualizarInterfaceCarrinho();
+            })
+            .catch(err => alert("Erro ao enviar dados: " + err))
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerText = "📦 CONCLUIR E GRAVAR NOTA FISCAL";
+            });
         }
     </script>
 </body>
