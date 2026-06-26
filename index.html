@@ -107,8 +107,10 @@
                 bancoDeFornecedores = data.proveedores.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
                 const datalistForn = document.getElementById("listaFornecedoresDatalist");
                 datalistForn.innerHTML = "";
-                bancoDeFornecedores.forEach(f => {
-                    datalistForn.innerHTML += `<option value="${f.nome}">`;
+             bancoDeFornecedores.forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f.nome;
+    datalistForn.appendChild(opt);
                 });
 
                 // Produtos em ordem alfabética
