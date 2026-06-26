@@ -118,9 +118,9 @@
                 const datalistProd = document.getElementById("listaProdutosDatalist");
                 datalistProd.innerHTML = "";
                 bancoProdutos.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.descricao;
-    datalistProd.appendChild(opt);
+                    const opt = document.createElement("option");
+                    opt.value = p.descricao;
+                    datalistProd.appendChild(opt);
                 });
             })
             .catch(err => alert("Erro ao conectar com a planilha.\n" + err));
