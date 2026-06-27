@@ -8,7 +8,6 @@
 </head>
 <body class="bg-gray-100 font-sans antialiased pb-10">
 
-    <!-- MODAL CADASTRO FORNECEDOR -->
     <div id="modalFornecedor" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <h2 class="text-base font-bold text-gray-800">➕ Cadastrar Novo Fornecedor</h2>
@@ -110,7 +109,9 @@
     </div>
 
     <script>
-        var URL_API = "https://script.google.com/macros/s/AKfycbxp5LBkn-xzJngiQ79o84HvHsr2tgVXz3QWrVwGTi6mnA1MTr8pm68wpn1ipnaGqN2T/exec";
+        // ⚠️ SUBSTITUA O LINK ABAIXO PELA URL DO WEB APP DA SUA PLANILHA DE TESTES (BANCO DE TESTES)
+        var URL_API = "COLE_AQUI_O_SEU_NOVO_LINK_DO_APPS_SCRIPT_DE_TESTES";
+        
         var bancoProdutos = [];
         var bancoDeFornecedores = [];
         var carrinhoItens = [];
@@ -361,11 +362,11 @@
             fetch(URL_API, {
                 method: "POST",
                 redirect: "follow",
-                mode: "no-cors",
                 body: JSON.stringify(payload)
             })
-            .then(function() {
-                alert("✅ Nota Fiscal enviada! Verifique a planilha.");
+            .then(function(res) { return res.json(); })
+            .then(function(resposta) {
+                alert("✅ Nota Fiscal enviada! Verifique a planilha de testes.");
                 carrinhoItens = [];
                 document.getElementById("buscaFornecedor").value = "";
                 document.getElementById("codFornecedor").value = "";
